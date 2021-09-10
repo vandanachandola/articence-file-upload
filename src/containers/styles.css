@@ -1,0 +1,21 @@
+.container {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button.btn {
+  background-color: #00a36c;
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+button.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
