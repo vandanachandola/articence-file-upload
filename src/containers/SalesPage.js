@@ -4,7 +4,7 @@ import Papa from 'papaparse';
 import ReactFilterBox, { SimpleResultProcessing } from 'react-filter-box';
 import Dimensions from 'react-dimensions';
 import 'react-filter-box/lib/react-filter-box.css';
-import './styles.css';
+import '../styles/styles.css';
 
 import Table from '../components/Table';
 
@@ -29,6 +29,7 @@ class SalesPage extends Component {
     this.setState({ selectedFile: event.target.files[0] });
   };
 
+  // on clicking upload button after selecting csv file
   onFileUpload = () => {
     const { selectedFile } = this.state;
     Papa.parse(selectedFile, {
@@ -37,6 +38,7 @@ class SalesPage extends Component {
     });
   };
 
+  // after uploaded csv file is parsed in json
   getCsvData(result) {
     const { data } = result;
     const { fields } = result.meta;
@@ -56,8 +58,9 @@ class SalesPage extends Component {
     });
   }
 
+  // on applying filter
   onParseOk(expressions) {
-    var newData = new SimpleResultProcessing(this.options).process(
+    const newData = new SimpleResultProcessing(this.options).process(
       this.state.data,
       expressions
     );
@@ -66,20 +69,24 @@ class SalesPage extends Component {
     });
   }
 
+  // on clicking download button, filtered data is downloaded as csv
   onDownload() {
-    var csv = Papa.unparse(this.state.filteredData);
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    var link = document.createElement('a');
-    var url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      this.state.selectedFile.name + ' - Filtered.csv'
-    );
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const csv = Papa.unparse(this.state.filteredData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const { name } = this.state.selectedFile;
+      const fileName = name.split('.')[0];
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName + ' - Filtered.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   render() {
@@ -129,6 +136,7 @@ class SalesPage extends Component {
   }
 }
 
+// to make table responsive
 export default withRouter(
   Dimensions({
     getHeight: function (element) {
