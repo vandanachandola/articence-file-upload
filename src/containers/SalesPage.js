@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { withRouter } from 'react-router-dom';
 import Papa from 'papaparse';
 import ReactFilterBox, { SimpleResultProcessing } from 'react-filter-box';
@@ -8,75 +8,71 @@ import '../styles/styles.css';
 
 import Table from '../components/Table';
 
-class SalesPage extends Component {
-  constructor(props) {
-    super(props);
+function SalesPage(props) {
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [columns, setColumns] = useState([]);
+  const [options, setOptions] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(props);
+  const [containerHeight, setContainerHeight] = useState(props);
 
-    this.state = {
-      data: [],
-      filteredData: [],
-      columns: [],
-      selectedFile: null,
-      isFileUploaded: false,
-    };
+  useEffect(() => {
+    const { containerWidth, containerHeight } = props;
+    setContainerWidth(containerWidth);
+    setContainerHeight(containerHeight);
+  }, [props]);
 
-    this.optionsx = [];
-    this.getCsvData = this.getCsvData.bind(this);
-    this.onDownload = this.onDownload.bind(this);
-  }
-
-  onFileChange = (event) => {
-    this.setState({ selectedFile: event.target.files[0] });
+  const onFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
   };
 
   // on clicking upload button after selecting csv file
-  onFileUpload = () => {
-    const { selectedFile } = this.state;
+  const onFileUpload = () => {
     Papa.parse(selectedFile, {
       header: true,
-      complete: this.getCsvData,
+      complete: getCsvData,
     });
   };
 
   // after uploaded csv file is parsed in json
-  getCsvData(result) {
+  const getCsvData = (result) => {
     const { data } = result;
     const { fields } = result.meta;
 
-    this.options = fields.map(function (fieldName) {
+    const filterOptions = fields.map(function (fieldName) {
       return {
         columnField: fieldName,
         type: 'text',
       };
     });
 
-    this.setState({
-      data: data,
-      filteredData: data,
-      columns: [...fields],
-      isFileUploaded: true,
-    });
-  }
+    setOptions(filterOptions);
+    setData(data);
+    setFilteredData(data);
+    setColumns([...fields]);
+    setIsFileUploaded(true);
+  };
 
   // on applying filter
-  onParseOk(expressions) {
-    const newData = new SimpleResultProcessing(this.options).process(
-      this.state.data,
+  const onParseOk = (expressions) => {
+    const newData = new SimpleResultProcessing(options).process(
+      data,
       expressions
     );
-    this.setState({
-      filteredData: newData,
-    });
-  }
+
+    setFilteredData(newData);
+  };
 
   // on clicking download button, filtered data is downloaded as csv
-  onDownload() {
+  const onDownload = () => {
     try {
-      const csv = Papa.unparse(this.state.filteredData);
+      const csv = Papa.unparse(filteredData);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      const { name } = this.state.selectedFile;
+      const { name } = selectedFile;
       const fileName = name.split('.')[0];
       link.setAttribute('href', url);
       link.setAttribute('download', fileName + ' - Filtered.csv');
@@ -87,63 +83,53 @@ class SalesPage extends Component {
     } catch (e) {
       console.error(e);
     }
-  }
+  };
 
-  render() {
-    const { filteredData, isFileUploaded, selectedFile, columns } = this.state;
-    const { containerWidth, containerHeight } = this.props;
+  return (
+    <div className="container">
+      <h4>Upload CSV file</h4>
+      <div>
+        <input type="file" accept=".csv" onChange={onFileChange} />
+        <button className="btn" disabled={!selectedFile} onClick={onFileUpload}>
+          Upload
+        </button>
+      </div>
 
-    return (
-      <div className="container">
-        <h4>Upload CSV file</h4>
+      {isFileUploaded && (
         <div>
-          <input type="file" accept=".csv" onChange={this.onFileChange} />
-          <button
-            className="btn"
-            disabled={!selectedFile}
-            onClick={this.onFileUpload}
-          >
-            Upload
+          <h4>Filter CSV data</h4>
+          <ReactFilterBox
+            data={filteredData}
+            options={options}
+            onParseOk={onParseOk}
+          />
+
+          <Table
+            {...{
+              rows: filteredData,
+              fields: columns,
+              tableWidth: containerWidth,
+              tableHeight: containerHeight,
+            }}
+          />
+
+          <p>No. of rows in table: {filteredData.length}</p>
+          <button className="btn" onClick={onDownload}>
+            Download CSV
           </button>
         </div>
-
-        {isFileUploaded && (
-          <div>
-            <h4>Filter CSV data</h4>
-            <ReactFilterBox
-              data={filteredData}
-              options={this.options}
-              onParseOk={this.onParseOk.bind(this)}
-            />
-
-            <Table
-              {...{
-                rows: filteredData,
-                fields: columns,
-                tableWidth: containerWidth,
-                tableHeight: containerHeight,
-              }}
-            />
-
-            <p>No. of rows in table: {filteredData.length}</p>
-            <button className="btn" onClick={this.onDownload}>
-              Download CSV
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
+      )}
+    </div>
+  );
 }
 
-// to make table responsive
 export default withRouter(
   Dimensions({
     getHeight: function (element) {
       return window.innerHeight - 320;
     },
     getWidth: function (element) {
-      var widthOffset = window.innerWidth < 680 ? 0 : 240;
+      const widthOffset = window.innerWidth < 680 ? 0 : 240;
       return window.innerWidth - widthOffset;
     },
   })(SalesPage)
